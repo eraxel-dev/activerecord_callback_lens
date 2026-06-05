@@ -2,7 +2,7 @@
 
 **X-ray your ActiveRecord callbacks.**
 
-Callbacks are easy to add and hard to reason about. `activerecord_callback_lens` statically analyzes the callbacks registered on your ActiveRecord models, parses their `if`/`unless` conditions into logical trees, and renders the result as a Mermaid diagram so you can see exactly what runs and why.
+Callbacks are easy to add and hard to reason about. `activerecord_callback_lens` statically analyzes the callbacks registered on your ActiveRecord models, parses their `if`/`unless` conditions into logical trees, and renders the result as a Mermaid diagram, Graphviz DOT graph, or a self-contained HTML report so you can see exactly what runs and why.
 
 ## Requirements
 
@@ -99,6 +99,37 @@ rake callback_lens:graphviz MODEL=User EXPAND=true
 
 Requires [Graphviz](https://graphviz.org/download/) only when piping to `dot`.
 
+#### HTML report
+
+Pass `--html FILE` (CLI) or use `callback_lens:html` (Rake) to generate a
+self-contained HTML report. The file embeds a Mermaid diagram (via CDN), an
+inline Graphviz SVG (when `dot` is installed), a callback list table, an
+execution-order flow, and a nested dependency tree for every condition — no
+external dependencies at view time.
+
+```bash
+# CLI — write report to a file
+callback_lens analyze User --html report.html
+
+# CLI — combine with stdout output
+callback_lens analyze User --mermaid --html report.html
+
+# Rake — default output filename: callback_lens_report.html
+rake callback_lens:html MODEL=User
+
+# Rake — custom output path
+rake callback_lens:html MODEL=User OUT=tmp/user_callbacks.html
+
+# Rake — with recursive method expansion
+rake callback_lens:html MODEL=User OUT=tmp/user_callbacks.html EXPAND=true
+```
+
+| ENV variable | Required | Default | Description |
+|---|---|---|---|
+| `MODEL` | Yes | — | ActiveRecord model class name |
+| `OUT` | No | `callback_lens_report.html` | Output path for the HTML file |
+| `EXPAND` | No | `false` | Set to `true` to recursively expand method conditions |
+
 ### Programmatic API
 
 ```ruby
@@ -123,8 +154,12 @@ puts ActiverecordCallbackLens::Renderer::MermaidRenderer.render(graph)
 |---|---|---|
 | Collector | `CallbackCollector` | Reads ActiveRecord's internal `_save_callbacks`, `_create_callbacks`, `_update_callbacks`, `_destroy_callbacks`, and `_validation_callbacks` chains |
 | Parser | `ConditionParser` | Uses [Prism](https://github.com/ruby/prism) to parse `Proc`/`Lambda` conditions into `AndNode`/`OrNode`/`NotNode`/`PredicateNode` trees; `Symbol` conditions become `MethodRefNode` stubs |
+| Resolver | `MethodResolver` | Recursively expands `MethodRefNode` symbols into full `ConditionTree` sub-trees (up to 5 levels deep) with cycle detection |
 | Graph | `GraphBuilder` | Assembles a DAG of `CallbackNode`, `ConditionNode`, `PredicateNode`, and `MethodNode` values |
+| Analyzer | `ExecutionOrderAnalyzer` | Sorts definitions into canonical Rails execution order (create or update path) |
 | Renderer | `MermaidRenderer` | Serializes the graph to a Mermaid `graph TD` string |
+| Renderer | `GraphvizRenderer` | Serializes the graph to a Graphviz DOT string; `#to_svg` shells out to `dot` |
+| Renderer | `HtmlRenderer` | Produces a self-contained HTML report embedding Mermaid, SVG, callback table, execution flow, and dependency tree |
 
 ## Condition tree nodes
 
@@ -141,9 +176,9 @@ puts ActiverecordCallbackLens::Renderer::MermaidRenderer.render(graph)
 | Version | Feature |
 |---|---|
 | v0.1 | CallbackCollector, Prism condition parser, Mermaid renderer, CLI, Rake task |
-| **v0.2** | MethodResolver — recursive expansion of Symbol conditions (`--expand` / `EXPAND=true`) |
-| **v0.3** | Graphviz / DOT renderer (`--graphviz` / `callback_lens:graphviz`) |
-| v0.4 | HTML report (callback list, execution flow, embedded diagram) |
+| v0.2 | MethodResolver — recursive expansion of Symbol conditions (`--expand` / `EXPAND=true`) |
+| v0.3 | Graphviz / DOT renderer (`--graphviz` / `callback_lens:graphviz`) |
+| **v0.4** | HTML report — callback list table, execution-order flow, dependency tree, embedded Mermaid and Graphviz SVG (`--html` / `callback_lens:html`) |
 | v1.0 | Runtime tracer via `ActiveSupport::Notifications` |
 | v2.0 | RBS analysis, cross-model dependency graph |
 
