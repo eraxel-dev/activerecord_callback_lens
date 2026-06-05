@@ -89,6 +89,37 @@ RSpec.describe CallbackLensRakeHelpers do
     end
   end
 
+  describe ".render_graphviz" do
+    it "runs the full pipeline and returns a DOT string" do
+      output = described_class.render_graphviz(RakeSpecUser)
+      expect(output).to start_with("digraph callback_lens {")
+      expect(output.rstrip).to end_with("}")
+    end
+
+    it "leaves method conditions unexpanded by default" do
+      output = described_class.render_graphviz(RakeExpandUser)
+      expect(output).to include("sync_required?")
+      expect(output).not_to include("active?")
+    end
+
+    it "expands method conditions into resolved sub-trees when expand: true" do
+      output = described_class.render_graphviz(RakeExpandUser, expand: true)
+      expect(output).to include("sync_required?")
+      expect(output).to include("active?")
+    end
+
+    it "calls MethodResolver.expand only when expand: true" do
+      expect(ActiverecordCallbackLens::Resolver::MethodResolver).not_to receive(:expand)
+      described_class.render_graphviz(RakeExpandUser, expand: false)
+    end
+
+    it "calls MethodResolver.expand for each definition when expand: true" do
+      expect(ActiverecordCallbackLens::Resolver::MethodResolver)
+        .to receive(:expand).at_least(:once).and_call_original
+      described_class.render_graphviz(RakeExpandUser, expand: true)
+    end
+  end
+
   describe ".expand?" do
     it "returns true for the exact string \"true\"" do
       expect(described_class.expand?("true")).to be(true)

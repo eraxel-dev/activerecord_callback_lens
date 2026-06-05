@@ -83,6 +83,40 @@ RSpec.describe ActiverecordCallbackLens::CLI::App do
     end
   end
 
+  describe "analyze --graphviz" do
+    it "prints a DOT graph starting with the digraph header" do
+      stdout, _stderr, status = run_cli(%w[analyze CliSpecUser --no-mermaid --graphviz])
+
+      expect(status).to be_nil
+      expect(stdout).to start_with("digraph callback_lens {")
+    end
+
+    it "prints a DOT graph that ends with a closing brace" do
+      stdout, = run_cli(%w[analyze CliSpecUser --no-mermaid --graphviz])
+
+      expect(stdout.rstrip).to end_with("}")
+    end
+
+    it "includes the DOT header even when Mermaid output precedes it (default --mermaid)" do
+      stdout, = run_cli(%w[analyze CliSpecUser --graphviz])
+
+      expect(stdout).to include("digraph callback_lens {")
+    end
+
+    it "emits both Mermaid and DOT output when --mermaid and --graphviz are combined" do
+      stdout, = run_cli(%w[analyze CliSpecUser --mermaid --graphviz])
+
+      expect(stdout).to include("graph TD")
+      expect(stdout).to include("digraph callback_lens {")
+    end
+
+    it "emits no DOT output when --graphviz is absent (existing behaviour unchanged)" do
+      stdout, = run_cli(%w[analyze CliSpecUser])
+
+      expect(stdout).not_to include("digraph")
+    end
+  end
+
   describe "analyze --expand" do
     it "expands method conditions into their resolved sub-trees" do
       stdout, = run_cli(%w[analyze CliExpandUser --expand --mermaid])
