@@ -10,7 +10,7 @@ RSpec.describe ActiverecordCallbackLens do
   end
 
   it "exposes the gem version (AC2)" do
-    expect(described_class::VERSION).to eq("0.1.0")
+    expect(described_class::VERSION).to eq("0.2.0")
   end
 
   it "freezes the VERSION string literal" do

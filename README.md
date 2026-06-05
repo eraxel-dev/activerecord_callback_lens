@@ -57,6 +57,25 @@ rake callback_lens:analyze MODEL=User
 rake callback_lens:mermaid  MODEL=User   # alias
 ```
 
+#### Recursive method expansion
+
+Pass `--expand` (CLI) or `EXPAND=true` (Rake) to recursively resolve symbol
+callback conditions into their `ConditionTree` representations (up to 5
+levels deep). Cycles and unresolvable methods are left unexpanded with a
+warning printed to stderr.
+
+```bash
+# CLI
+callback_lens analyze User --expand --mermaid
+
+# Rake
+rake callback_lens:analyze MODEL=User EXPAND=true
+rake callback_lens:mermaid  MODEL=User EXPAND=true
+```
+
+Only the exact value `EXPAND=true` (case-insensitive) enables expansion; any
+other value (`EXPAND=1`, `EXPAND=yes`, empty, or absent) leaves it off.
+
 ### Programmatic API
 
 ```ruby
@@ -98,8 +117,8 @@ puts ActiverecordCallbackLens::Renderer::MermaidRenderer.render(graph)
 
 | Version | Feature |
 |---|---|
-| **v0.1** | CallbackCollector, Prism condition parser, Mermaid renderer, CLI, Rake task |
-| v0.2 | MethodResolver — recursive expansion of Symbol conditions |
+| v0.1 | CallbackCollector, Prism condition parser, Mermaid renderer, CLI, Rake task |
+| **v0.2** | MethodResolver — recursive expansion of Symbol conditions (`--expand` / `EXPAND=true`) |
 | v0.3 | Graphviz / DOT renderer |
 | v0.4 | HTML report (callback list, execution flow, embedded diagram) |
 | v1.0 | Runtime tracer via `ActiveSupport::Notifications` |

@@ -22,14 +22,37 @@ module CallbackLensRakeHelpers
     raise "Cannot find model class '#{name}'. Make sure it is loaded."
   end
 
-  # Runs the full pipeline (collect -> parse -> build -> render) for a model.
+  # Runs the full pipeline (collect -> parse -> [expand] -> build -> render) for
+  # a model.
+  #
+  # When +expand+ is true, every parsed definition's condition_tree has its
+  # MethodRefNodes resolved into ConditionTree sub-trees via MethodResolver,
+  # matching the CLI's +--expand+ behaviour. When false (the default), the
+  # pipeline is identical to v0.1 output. Threading +expand+ through this single
+  # helper keeps every rake task that delegates here uniform.
   #
   # @param model_class [Class]
+  # @param expand [Boolean]
   # @return [String] the Mermaid diagram
-  def render_mermaid(model_class)
+  def render_mermaid(model_class, expand: false)
     definitions = ActiverecordCallbackLens::Collector::CallbackCollector.collect(model_class)
     definitions = definitions.map { |definition| ActiverecordCallbackLens::Parser::ConditionParser.parse(definition) }
+    if expand
+      definitions = definitions.map do |definition|
+        ActiverecordCallbackLens::Resolver::MethodResolver.expand(definition, model_class)
+      end
+    end
     graph = ActiverecordCallbackLens::Graph::GraphBuilder.build(definitions)
     ActiverecordCallbackLens::Renderer::MermaidRenderer.render(graph)
+  end
+
+  # Parses the EXPAND environment variable using the strict truthy rule: only the
+  # exact string "true" (case-insensitive, surrounding whitespace stripped)
+  # enables expansion. Any other value ("1", "yes", "", nil) leaves it off.
+  #
+  # @param value [String, nil] the raw ENV["EXPAND"] value
+  # @return [Boolean]
+  def expand?(value)
+    value.to_s.strip.downcase == "true"
   end
 end
