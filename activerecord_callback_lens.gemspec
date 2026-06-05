@@ -10,8 +10,8 @@ Gem::Specification.new do |s|
                   "ActiveRecord models — including their if/unless conditions — as " \
                   "graphs and diagrams."
   s.authors     = ["Eraxel.Dev"]
-  s.email       = ["masacode.vancouver@gmail.com"]
-  s.homepage    = "https://github.com/eraxel/activerecord_callback_lens"
+  s.email       = ["eraxel.dev@gmail.com"]
+  s.homepage    = "https://github.com/eraxel-dev/activerecord_callback_lens"
   s.license     = "MIT"
 
   s.required_ruby_version = ">= 3.2"
