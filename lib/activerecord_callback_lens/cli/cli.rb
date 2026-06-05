@@ -7,15 +7,19 @@ require_relative "../parser/condition_parser"
 require_relative "../resolver/method_resolver"
 require_relative "../graph/graph_builder"
 require_relative "../renderer/mermaid_renderer"
+require_relative "../renderer/graphviz_renderer"
 
 module ActiverecordCallbackLens
   module CLI
     # Thor application exposing the callback_lens command-line interface.
     #
-    # For v0.1 it provides a single command, +analyze+, which runs the full
-    # pipeline (collect -> parse -> build graph -> render) and prints a Mermaid
-    # diagram to stdout. An unknown model name is reported with a friendly
-    # message and a non-zero exit status rather than a Ruby backtrace.
+    # It provides a single command, +analyze+, which runs the full pipeline
+    # (collect -> parse -> build graph -> render) and prints the result to
+    # stdout. Output format is selectable per invocation: a Mermaid diagram
+    # (+--mermaid+, on by default) and/or a Graphviz DOT graph (+--graphviz+);
+    # the two flags are independent and may be combined. An unknown model name
+    # is reported with a friendly message and a non-zero exit status rather than
+    # a Ruby backtrace.
     class App < Thor
       # Tells Thor to exit with a non-zero status when a command raises, so the
       # +exit 1+ paths below propagate a failure code to the shell.
@@ -25,8 +29,10 @@ module ActiverecordCallbackLens
         true
       end
 
-      desc "analyze MODEL", "Analyze callbacks for a model class and print a Mermaid diagram"
+      desc "analyze MODEL", "Analyze callbacks for a model class and print a Mermaid and/or Graphviz diagram"
       option :mermaid, type: :boolean, default: true, desc: "Output a Mermaid diagram to stdout"
+      option :graphviz, type: :boolean, default: false,
+                        desc: "Output DOT graph via Graphviz to stdout"
       option :expand, type: :boolean, default: false,
                       desc: "Expand method conditions recursively (up to depth 5)"
       # Runs the analysis pipeline for +model_name+ and prints the result.
@@ -37,6 +43,7 @@ module ActiverecordCallbackLens
         model_class = resolve_model(model_name)
         graph = build_graph(model_class, expand: options[:expand])
         puts Renderer::MermaidRenderer.render(graph) if options[:mermaid]
+        puts Renderer::GraphvizRenderer.render(graph) if options[:graphviz]
       end
 
       private

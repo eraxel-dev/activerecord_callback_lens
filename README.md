@@ -76,6 +76,29 @@ rake callback_lens:mermaid  MODEL=User EXPAND=true
 Only the exact value `EXPAND=true` (case-insensitive) enables expansion; any
 other value (`EXPAND=1`, `EXPAND=yes`, empty, or absent) leaves it off.
 
+#### Graphviz DOT output
+
+Pass `--graphviz` (CLI) or use `callback_lens:graphviz` (Rake) to output a
+[Graphviz DOT](https://graphviz.org/) diagram to stdout. Pipe it to `dot` to
+generate an image:
+
+```bash
+# CLI — print DOT to stdout
+callback_lens analyze User --graphviz
+
+# CLI — combine with Mermaid output
+callback_lens analyze User --mermaid --graphviz
+
+# CLI — pipe to dot for a PNG
+callback_lens analyze User --graphviz | dot -Tpng -o callbacks.png
+
+# Rake
+rake callback_lens:graphviz MODEL=User
+rake callback_lens:graphviz MODEL=User EXPAND=true
+```
+
+Requires [Graphviz](https://graphviz.org/download/) only when piping to `dot`.
+
 ### Programmatic API
 
 ```ruby
@@ -119,7 +142,7 @@ puts ActiverecordCallbackLens::Renderer::MermaidRenderer.render(graph)
 |---|---|
 | v0.1 | CallbackCollector, Prism condition parser, Mermaid renderer, CLI, Rake task |
 | **v0.2** | MethodResolver — recursive expansion of Symbol conditions (`--expand` / `EXPAND=true`) |
-| v0.3 | Graphviz / DOT renderer |
+| **v0.3** | Graphviz / DOT renderer (`--graphviz` / `callback_lens:graphviz`) |
 | v0.4 | HTML report (callback list, execution flow, embedded diagram) |
 | v1.0 | Runtime tracer via `ActiveSupport::Notifications` |
 | v2.0 | RBS analysis, cross-model dependency graph |

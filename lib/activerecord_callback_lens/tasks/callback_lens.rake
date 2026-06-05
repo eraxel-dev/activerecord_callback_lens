@@ -17,4 +17,12 @@ namespace :callback_lens do
     expand = CallbackLensRakeHelpers.expand?(ENV.fetch("EXPAND", nil))
     puts CallbackLensRakeHelpers.render_mermaid(model_class, expand: expand)
   end
+
+  desc "Write Graphviz DOT to STDOUT for MODEL " \
+       "(e.g. rake callback_lens:graphviz MODEL=User EXPAND=true)"
+  task graphviz: :environment do
+    model_class = CallbackLensRakeHelpers.resolve_model!(ENV.fetch("MODEL", nil))
+    expand = CallbackLensRakeHelpers.expand?(ENV.fetch("EXPAND", nil))
+    puts CallbackLensRakeHelpers.render_graphviz(model_class, expand: expand)
+  end
 end
