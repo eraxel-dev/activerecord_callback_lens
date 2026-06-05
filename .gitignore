@@ -1,0 +1,6 @@
+/.claude/
+*.gem
+/pkg/
+/tmp/
+/.bundle/
+/coverage/
