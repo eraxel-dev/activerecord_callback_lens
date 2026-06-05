@@ -25,4 +25,14 @@ namespace :callback_lens do
     expand = CallbackLensRakeHelpers.expand?(ENV.fetch("EXPAND", nil))
     puts CallbackLensRakeHelpers.render_graphviz(model_class, expand: expand)
   end
+
+  desc "Write a self-contained HTML report to OUT for MODEL " \
+       "(e.g. rake callback_lens:html MODEL=User OUT=report.html EXPAND=true)"
+  task html: :environment do
+    model_class = CallbackLensRakeHelpers.resolve_model!(ENV.fetch("MODEL", nil))
+    expand = CallbackLensRakeHelpers.expand?(ENV.fetch("EXPAND", nil))
+    out = ENV.fetch("OUT", "callback_lens_report.html")
+    File.write(out, CallbackLensRakeHelpers.render_html(model_class, expand: expand))
+    puts "Report written to #{out}"
+  end
 end
