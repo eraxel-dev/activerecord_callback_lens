@@ -14,6 +14,24 @@ class CliSpecUser < ActiveRecord::Base
   def active?; end
 end
 
+# A model whose callback condition (:sync_required?) delegates to another
+# predicate (:active?). Expansion resolves :sync_required? into a sub-tree that
+# surfaces :active? as a child node, giving the expand specs an observable
+# difference from the v0.1 (unexpanded) output.
+class CliExpandUser < ActiveRecord::Base
+  self.abstract_class = true
+
+  before_save :normalize, if: :sync_required?
+
+  def normalize; end
+
+  def sync_required?
+    active?
+  end
+
+  def active?; end
+end
+
 RSpec.describe ActiverecordCallbackLens::CLI::App do
   # Runs the Thor app with the given argv, capturing stdout and stderr. Returns
   # [stdout, stderr, exit_status]; exit_status is nil unless the command exits.
@@ -62,6 +80,42 @@ RSpec.describe ActiverecordCallbackLens::CLI::App do
       expect(stderr).to include("cannot find model class 'NoSuchModelXYZ'")
       expect(stderr).not_to include("NameError")
       expect(stdout).not_to include("graph TD")
+    end
+  end
+
+  describe "analyze --expand" do
+    it "expands method conditions into their resolved sub-trees" do
+      stdout, = run_cli(%w[analyze CliExpandUser --expand --mermaid])
+
+      # :sync_required? delegates to :active?; expansion surfaces active? as a node.
+      expect(stdout).to start_with("graph TD")
+      expect(stdout).to include("sync_required?")
+      expect(stdout).to include("active?")
+    end
+
+    it "leaves method conditions unexpanded without --expand (v0.1 behaviour)" do
+      stdout, = run_cli(%w[analyze CliExpandUser --mermaid])
+
+      expect(stdout).to include("sync_required?")
+      expect(stdout).not_to include("active?")
+    end
+
+    it "produces identical output to the no-flag invocation when --expand is absent" do
+      with_flag, = run_cli(%w[analyze CliExpandUser --mermaid])
+      without_flag, = run_cli(%w[analyze CliExpandUser])
+
+      expect(with_flag).to eq(without_flag)
+    end
+
+    it "calls MethodResolver.expand only when --expand is passed" do
+      expect(ActiverecordCallbackLens::Resolver::MethodResolver).not_to receive(:expand)
+      run_cli(%w[analyze CliExpandUser --mermaid])
+    end
+
+    it "calls MethodResolver.expand for each definition when --expand is passed" do
+      expect(ActiverecordCallbackLens::Resolver::MethodResolver)
+        .to receive(:expand).at_least(:once).and_call_original
+      run_cli(%w[analyze CliExpandUser --expand --mermaid])
     end
   end
 
