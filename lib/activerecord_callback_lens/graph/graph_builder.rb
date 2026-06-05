@@ -89,6 +89,12 @@ module ActiverecordCallbackLens
         tree_node.children.each { |child| add_tree(child, parent_id: condition_node.id) }
       end
 
+      # The +expanded_tree+ inspected here is populated upstream by
+      # Resolver::MethodResolver.expand; the GraphBuilder neither resolves nor
+      # mutates it. When the tree was not run through expand (the v0.1 path),
+      # +expanded_tree+ is nil and the MethodNode stays a leaf, so unexpanded
+      # output is byte-for-byte identical to v0.1.
+      #
       # @param tree_node [Parser::ConditionTree::MethodRefNode]
       # @param parent_id [String]
       # @return [void]

@@ -39,9 +39,36 @@ module ActiverecordCallbackLens
         new(model_class).resolve(method_name)
       end
 
+      # Per-definition expansion entry point. Walks a CallbackDefinition's
+      # condition_tree, resolves every MethodRefNode against the model, and
+      # returns a new definition whose tree carries populated expanded_tree
+      # fields. Bridges the resolver core and the CLI/Rake integration.
+      #
+      # @param definition [Collector::CallbackDefinition]
+      # @param model_class [Class]
+      # @return [Collector::CallbackDefinition] with condition_tree fully expanded
+      def self.expand(definition, model_class)
+        new(model_class).expand(definition)
+      end
+
       # @param model_class [Class]
       def initialize(model_class)
         @model_class = model_class
+      end
+
+      # Expands every MethodRefNode in the definition's condition_tree.
+      #
+      # A definition with no condition_tree (nil) is returned unchanged; so is a
+      # tree that contains no MethodRefNodes (expand_tree rebuilds it into a
+      # value-equal copy, leaving non-expansion output identical to v0.1).
+      #
+      # @param definition [Collector::CallbackDefinition]
+      # @return [Collector::CallbackDefinition]
+      def expand(definition)
+        return definition unless definition.condition_tree
+
+        expanded = expand_tree(definition.condition_tree)
+        definition.with(condition_tree: expanded)
       end
 
       # Resolves a method name into an expanded ConditionTree.
@@ -67,6 +94,30 @@ module ActiverecordCallbackLens
       end
 
       private
+
+      # Recursively rebuilds a condition_tree, populating expanded_tree on every
+      # MethodRefNode. And/Or/Not structure is preserved by rebuilding children
+      # through Data#with so callers' references are never mutated; nodes with no
+      # MethodRefNode beneath them rebuild into value-equal copies.
+      #
+      # Each MethodRefNode is resolved from a fresh depth-0 walk (resolve applies
+      # its own MAX_DEPTH/visited guards), so a ref's name (a String) is converted
+      # to a Symbol before being handed to resolve.
+      #
+      # @param node [Parser::ConditionTree::Node, nil]
+      # @return [Parser::ConditionTree::Node, nil]
+      def expand_tree(node)
+        case node
+        in Parser::ConditionTree::AndNode | Parser::ConditionTree::OrNode
+          node.with(children: node.children.map { |child| expand_tree(child) })
+        in Parser::ConditionTree::NotNode
+          node.with(child: expand_tree(node.child))
+        in Parser::ConditionTree::MethodRefNode
+          node.with(expanded_tree: resolve(node.name.to_sym))
+        else
+          node
+        end
+      end
 
       # Locates the method's source and parses its body into a ConditionTree.
       #
