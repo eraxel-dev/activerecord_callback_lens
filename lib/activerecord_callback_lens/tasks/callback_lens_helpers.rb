@@ -46,6 +46,26 @@ module CallbackLensRakeHelpers
     ActiverecordCallbackLens::Renderer::MermaidRenderer.render(graph)
   end
 
+  # Runs the full pipeline (collect -> parse -> [expand] -> build -> render) for
+  # a model and returns a Graphviz DOT language string. Mirrors +render_mermaid+
+  # but uses the GraphvizRenderer; +expand+ is threaded through identically so
+  # the +EXPAND=true+ rake convention applies to the graphviz task too.
+  #
+  # @param model_class [Class]
+  # @param expand [Boolean]
+  # @return [String] DOT language string
+  def render_graphviz(model_class, expand: false)
+    definitions = ActiverecordCallbackLens::Collector::CallbackCollector.collect(model_class)
+    definitions = definitions.map { |definition| ActiverecordCallbackLens::Parser::ConditionParser.parse(definition) }
+    if expand
+      definitions = definitions.map do |definition|
+        ActiverecordCallbackLens::Resolver::MethodResolver.expand(definition, model_class)
+      end
+    end
+    graph = ActiverecordCallbackLens::Graph::GraphBuilder.build(definitions)
+    ActiverecordCallbackLens::Renderer::GraphvizRenderer.render(graph)
+  end
+
   # Parses the EXPAND environment variable using the strict truthy rule: only the
   # exact string "true" (case-insensitive, surrounding whitespace stripped)
   # enables expansion. Any other value ("1", "yes", "", nil) leaves it off.
