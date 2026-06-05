@@ -9,8 +9,10 @@ require "activerecord_callback_lens/parser/condition_parser"
 require "activerecord_callback_lens/resolver/method_resolver"
 require "activerecord_callback_lens/graph/nodes"
 require "activerecord_callback_lens/graph/graph_builder"
+require "activerecord_callback_lens/execution_order_analyzer"
 require "activerecord_callback_lens/renderer/mermaid_renderer"
 require "activerecord_callback_lens/renderer/graphviz_renderer"
+require "activerecord_callback_lens/renderer/html_renderer"
 require "activerecord_callback_lens/cli/cli"
 require "activerecord_callback_lens/railtie" if defined?(Rails::Railtie)
 

@@ -2,6 +2,7 @@
 
 require "active_record"
 require "stringio"
+require "tmpdir"
 
 # A minimal in-memory model with one conditional callback, used to exercise the
 # CLI's full pipeline without a database.
@@ -150,6 +151,51 @@ RSpec.describe ActiverecordCallbackLens::CLI::App do
       expect(ActiverecordCallbackLens::Resolver::MethodResolver)
         .to receive(:expand).at_least(:once).and_call_original
       run_cli(%w[analyze CliExpandUser --expand --mermaid])
+    end
+  end
+
+  describe "analyze --html" do
+    around do |example|
+      Dir.mktmpdir do |dir|
+        @tmpdir = dir
+        example.run
+      end
+    end
+
+    # Keep the SVG section out so the CLI specs never depend on `dot` being
+    # installed on the host or in CI.
+    before do
+      allow_any_instance_of(ActiverecordCallbackLens::Renderer::GraphvizRenderer)
+        .to receive(:to_svg).and_return(nil)
+    end
+
+    it "writes an HTML report to the given file path" do
+      path = File.join(@tmpdir, "report.html")
+      run_cli(["analyze", "CliSpecUser", "--no-mermaid", "--html", path])
+
+      expect(File).to exist(path)
+    end
+
+    it "writes a file whose content starts with <!DOCTYPE html>" do
+      path = File.join(@tmpdir, "report.html")
+      run_cli(["analyze", "CliSpecUser", "--no-mermaid", "--html", path])
+
+      expect(File.read(path)).to start_with("<!DOCTYPE html>")
+    end
+
+    it "prints an \"HTML report written to\" confirmation to stdout" do
+      path = File.join(@tmpdir, "report.html")
+      stdout, = run_cli(["analyze", "CliSpecUser", "--no-mermaid", "--html", path])
+
+      expect(stdout).to include("HTML report written to")
+      expect(stdout).to include(path)
+    end
+
+    it "does not write a file when --html is absent" do
+      path = File.join(@tmpdir, "report.html")
+      run_cli(%w[analyze CliSpecUser])
+
+      expect(File).not_to exist(path)
     end
   end
 

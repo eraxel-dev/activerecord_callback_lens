@@ -120,6 +120,48 @@ RSpec.describe CallbackLensRakeHelpers do
     end
   end
 
+  describe ".render_html" do
+    # Keep the SVG section out so these specs never depend on `dot` being
+    # installed on the host or in CI.
+    before do
+      allow_any_instance_of(ActiverecordCallbackLens::Renderer::GraphvizRenderer)
+        .to receive(:to_svg).and_return(nil)
+    end
+
+    it "runs the full pipeline and returns an HTML document" do
+      output = described_class.render_html(RakeSpecUser)
+      expect(output).to start_with("<!DOCTYPE html>")
+    end
+
+    it "contains callback names from the model" do
+      output = described_class.render_html(RakeSpecUser)
+      expect(output).to include("before_save")
+    end
+
+    it "leaves method conditions unexpanded by default" do
+      output = described_class.render_html(RakeExpandUser)
+      expect(output).to include("sync_required?")
+      expect(output).not_to include("active?")
+    end
+
+    it "expands method conditions into resolved sub-trees when expand: true" do
+      output = described_class.render_html(RakeExpandUser, expand: true)
+      expect(output).to include("sync_required?")
+      expect(output).to include("active?")
+    end
+
+    it "calls MethodResolver.expand only when expand: true" do
+      expect(ActiverecordCallbackLens::Resolver::MethodResolver).not_to receive(:expand)
+      described_class.render_html(RakeExpandUser, expand: false)
+    end
+
+    it "calls MethodResolver.expand for each definition when expand: true" do
+      expect(ActiverecordCallbackLens::Resolver::MethodResolver)
+        .to receive(:expand).at_least(:once).and_call_original
+      described_class.render_html(RakeExpandUser, expand: true)
+    end
+  end
+
   describe ".expand?" do
     it "returns true for the exact string \"true\"" do
       expect(described_class.expand?("true")).to be(true)

@@ -66,6 +66,28 @@ module CallbackLensRakeHelpers
     ActiverecordCallbackLens::Renderer::GraphvizRenderer.render(graph)
   end
 
+  # Runs the full pipeline (collect -> parse -> [expand] -> build) for a model and
+  # returns a self-contained HTML report via HtmlRenderer. Mirrors
+  # +render_mermaid+ / +render_graphviz+ but passes both the parsed definitions
+  # and the assembled graph to the HtmlRenderer, which needs the definitions to
+  # build the callback table, execution flow, and dependency tree. +expand+ is
+  # threaded through identically so the +EXPAND=true+ rake convention applies.
+  #
+  # @param model_class [Class]
+  # @param expand [Boolean]
+  # @return [String] a complete HTML document
+  def render_html(model_class, expand: false)
+    definitions = ActiverecordCallbackLens::Collector::CallbackCollector.collect(model_class)
+    definitions = definitions.map { |definition| ActiverecordCallbackLens::Parser::ConditionParser.parse(definition) }
+    if expand
+      definitions = definitions.map do |definition|
+        ActiverecordCallbackLens::Resolver::MethodResolver.expand(definition, model_class)
+      end
+    end
+    graph = ActiverecordCallbackLens::Graph::GraphBuilder.build(definitions)
+    ActiverecordCallbackLens::Renderer::HtmlRenderer.render(graph, definitions: definitions)
+  end
+
   # Parses the EXPAND environment variable using the strict truthy rule: only the
   # exact string "true" (case-insensitive, surrounding whitespace stripped)
   # enables expansion. Any other value ("1", "yes", "", nil) leaves it off.
