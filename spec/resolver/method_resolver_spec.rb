@@ -48,6 +48,13 @@ module MethodResolverFixtures
     def d5? = d6?
     def d6? = bottom?
   end
+
+  # Used by .expand specs: a predicate that composes another method ref so the
+  # expansion walk has something to resolve.
+  class ExpandModel
+    def sync_required? = needs_sync?
+    def needs_sync? = dirty?
+  end
 end
 
 RSpec.describe ActiverecordCallbackLens::Resolver::MethodResolver do
@@ -243,6 +250,101 @@ RSpec.describe ActiverecordCallbackLens::Resolver::MethodResolver do
         result = described_class.resolve(fixtures::SimpleModel, :no_such_method?)
       end.not_to raise_error
       expect(result).to be_nil
+    end
+  end
+
+  describe ".expand" do
+    definition_klass = ActiverecordCallbackLens::Collector::CallbackDefinition
+
+    # Builds a CallbackDefinition wrapping the given condition_tree. Only
+    # condition_tree and model matter for expansion; the rest are filler.
+    build_definition = lambda do |model:, condition_tree:|
+      definition_klass.new(
+        model: model,
+        event: :save,
+        phase: :before,
+        filter: :do_thing,
+        raw_conditions: { if: [], unless: [] },
+        condition_tree: condition_tree,
+        source_location: nil
+      )
+    end
+
+    it "returns the definition unchanged when condition_tree is nil" do
+      definition = build_definition.call(model: fixtures::ExpandModel, condition_tree: nil)
+
+      result = described_class.expand(definition, fixtures::ExpandModel)
+
+      expect(result).to equal(definition)
+    end
+
+    it "returns a value-equal tree when there are no MethodRefNodes" do
+      condition_tree = tree::AndNode.new(
+        children: [tree::PredicateNode.new(name: "active?"), tree::PredicateNode.new(name: "ready?")]
+      )
+      definition = build_definition.call(model: fixtures::ExpandModel, condition_tree: condition_tree)
+
+      result = described_class.expand(definition, fixtures::ExpandModel)
+
+      expect(result.condition_tree).to eq(condition_tree)
+    end
+
+    it "populates expanded_tree on a single top-level MethodRefNode" do
+      condition_tree = tree::MethodRefNode.new(name: "sync_required?", expanded_tree: nil)
+      definition = build_definition.call(model: fixtures::ExpandModel, condition_tree: condition_tree)
+
+      result = described_class.expand(definition, fixtures::ExpandModel).condition_tree
+
+      expect(result).to be_a(tree::MethodRefNode)
+      expect(result.name).to eq("sync_required?")
+      # sync_required? -> needs_sync? (a ref) -> dirty? (a predicate)
+      ref = result.expanded_tree
+      expect(ref).to be_a(tree::MethodRefNode)
+      expect(ref.name).to eq("needs_sync?")
+      expect(ref.expanded_tree).to be_a(tree::PredicateNode)
+      expect(ref.expanded_tree.name).to eq("dirty?")
+    end
+
+    it "expands MethodRefNodes nested inside an AndNode" do
+      condition_tree = tree::AndNode.new(
+        children: [
+          tree::PredicateNode.new(name: "active?"),
+          tree::MethodRefNode.new(name: "sync_required?", expanded_tree: nil)
+        ]
+      )
+      definition = build_definition.call(model: fixtures::ExpandModel, condition_tree: condition_tree)
+
+      result = described_class.expand(definition, fixtures::ExpandModel).condition_tree
+
+      expect(result).to be_a(tree::AndNode)
+      predicate, ref = result.children
+      expect(predicate).to eq(tree::PredicateNode.new(name: "active?"))
+      expect(ref).to be_a(tree::MethodRefNode)
+      expect(ref.expanded_tree).to be_a(tree::MethodRefNode)
+      expect(ref.expanded_tree.name).to eq("needs_sync?")
+    end
+
+    it "does not mutate the caller's original tree" do
+      original = tree::MethodRefNode.new(name: "sync_required?", expanded_tree: nil)
+      definition = build_definition.call(model: fixtures::ExpandModel, condition_tree: original)
+
+      described_class.expand(definition, fixtures::ExpandModel)
+
+      expect(original.expanded_tree).to be_nil
+    end
+
+    it "produces additional MethodNode + edge structure when graphed" do
+      condition_tree = tree::MethodRefNode.new(name: "sync_required?", expanded_tree: nil)
+      definition = build_definition.call(model: fixtures::ExpandModel, condition_tree: condition_tree)
+      expanded = described_class.expand(definition, fixtures::ExpandModel)
+
+      graph = ActiverecordCallbackLens::Graph::GraphBuilder.build([expanded])
+      mermaid = ActiverecordCallbackLens::Renderer::MermaidRenderer.render(graph)
+
+      # The expanded sub-tree surfaces both the ref names and the bottom predicate.
+      expect(mermaid).to include("sync_required?")
+      expect(mermaid).to include("needs_sync?")
+      expect(mermaid).to include("dirty?")
     end
   end
 
