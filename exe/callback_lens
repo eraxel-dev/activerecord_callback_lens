@@ -1,0 +1,6 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require "activerecord_callback_lens"
+
+ActiverecordCallbackLens::CLI::App.start(ARGV)
