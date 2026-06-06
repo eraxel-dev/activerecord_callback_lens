@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.1] - 2026-06-06
+
+### Added
+
+- Example Rails application at `examples/blog_app/`: a self-contained demo app
+  with an `Article` model that exercises all five callback lifecycle events,
+  every condition style (`Proc`, `Symbol`, `AndNode`, `OrNode`, `NotNode`), and
+  a predicate chain designed to show the difference between default and
+  `EXPAND=true` output. Includes `User` and `Comment` models for multi-model
+  demos, a `bin/callback_lens_demo` script demonstrating the programmatic API,
+  and a dedicated README with the full command matrix.
+
 ## [0.4.0] - 2026-06-06
 
 ### Added
@@ -58,6 +70,7 @@ Initial release.
 - **CLI** (`callback_lens analyze MODEL`) — Thor-based command-line interface that runs the full collect → parse → build → render pipeline and prints the Mermaid diagram to stdout.
 - **Rake task** (`callback_lens:analyze MODEL=Foo`) — Rails-integrated rake task backed by a Railtie; `callback_lens:mermaid` is provided as an alias.
 
+[0.4.1]: https://github.com/eraxel/activerecord_callback_lens/releases/tag/v0.4.1
 [0.4.0]: https://github.com/eraxel/activerecord_callback_lens/releases/tag/v0.4.0
 [0.3.0]: https://github.com/eraxel/activerecord_callback_lens/releases/tag/v0.3.0
 [0.2.0]: https://github.com/eraxel/activerecord_callback_lens/releases/tag/v0.2.0
