@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require_relative "../support/proc_fixtures"
+
 RSpec.describe ActiverecordCallbackLens::Renderer::HtmlRenderer do
   graph_ns = ActiverecordCallbackLens::Graph
   tree = ActiverecordCallbackLens::Parser::ConditionTree
@@ -29,8 +31,8 @@ RSpec.describe ActiverecordCallbackLens::Renderer::HtmlRenderer do
       .to receive(:to_svg).and_return(nil)
   end
 
-  def render(defs = [definition], the_graph = graph)
-    described_class.render(the_graph, definitions: defs)
+  def render(defs = [definition], the_graph = graph, expand: false)
+    described_class.render(the_graph, definitions: defs, expand: expand)
   end
 
   describe ".render" do
@@ -57,6 +59,24 @@ RSpec.describe ActiverecordCallbackLens::Renderer::HtmlRenderer do
 
     it "includes the Execution Flow section" do
       expect(render).to include("Execution Flow")
+    end
+
+    it "labels execution flow items as `callback_name: filter_label`" do
+      output = render([callback_definition(phase: :before, event: :save, filter: :normalize)])
+      flow = output[%r{<ol>.*?</ol>}m]
+      expect(flow).to include("<li>before_save: normalize</li>")
+    end
+
+    it "labels dependency tree headers as `callback_name: filter_label`" do
+      defs = [
+        callback_definition(
+          phase: :before, event: :save, filter: :normalize,
+          condition_tree: tree::PredicateNode.new(name: "active?")
+        )
+      ]
+      output = render(defs)
+      tree_section = output[%r{<h2>Dependency Tree</h2>.*?</ul>}m]
+      expect(tree_section).to include("before_save: normalize")
     end
 
     it "lists callbacks in the execution flow in canonical create-path order" do
@@ -164,6 +184,57 @@ RSpec.describe ActiverecordCallbackLens::Renderer::HtmlRenderer do
 
       expect(output).to include("(proc)")
       expect(output).not_to include("#<Proc")
+    end
+
+    it "keeps the Filter as its own Callback List table column" do
+      output = render([callback_definition(filter: :normalize)])
+      table = output[%r{<table>.*?</table>}m]
+      expect(table).to include("<td>normalize</td>")
+    end
+
+    context "with expand: true and a proc filter" do
+      let(:proc_definition) do
+        callback_definition(
+          phase: :before, event: :save,
+          filter: ProcFixtures.single_line_lambda,
+          condition_tree: tree::PredicateNode.new(name: "active?")
+        )
+      end
+      let(:proc_graph) do
+        node = graph_ns::CallbackNode.new(id: "n0", definition: proc_definition)
+        graph_ns::Graph.new(nodes: [node], edges: [])
+      end
+
+      def render_expanded
+        described_class.render(proc_graph, definitions: [proc_definition], expand: true)
+      end
+
+      it "shows the proc snippet in the Callback List table" do
+        table = render_expanded[%r{<table>.*?</table>}m]
+        expect(table).to include("-&gt; { compute_reading_time }")
+      end
+
+      it "shows the proc snippet in the Execution Flow" do
+        flow = render_expanded[%r{<ol>.*?</ol>}m]
+        expect(flow).to include("before_save: -&gt; { compute_reading_time }")
+      end
+
+      it "shows the proc snippet in the Dependency Tree header" do
+        tree_section = render_expanded[%r{<h2>Dependency Tree</h2>.*?</ul>}m]
+        expect(tree_section).to include("before_save: -&gt; { compute_reading_time }")
+      end
+
+      it "reflects expand in the embedded Mermaid section" do
+        mermaid = render_expanded[%r{<pre class="mermaid">.*?</pre>}m]
+        expect(mermaid).to include("compute_reading_time")
+      end
+
+      it "renders (proc) in the embedded Mermaid section when expand is false" do
+        output = described_class.render(proc_graph, definitions: [proc_definition], expand: false)
+        mermaid = output[%r{<pre class="mermaid">.*?</pre>}m]
+        expect(mermaid).to include("before_save: (proc)")
+        expect(mermaid).not_to include("compute_reading_time")
+      end
     end
   end
 end

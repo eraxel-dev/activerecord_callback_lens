@@ -33,6 +33,16 @@ class CliExpandUser < ActiveRecord::Base
   def active?; end
 end
 
+# A model whose callback filter is a lambda, used to exercise --expand rendering
+# the proc's source snippet into the callback node label.
+class CliProcUser < ActiveRecord::Base
+  self.abstract_class = true
+
+  before_save -> { normalize_title }
+
+  def normalize_title; end
+end
+
 RSpec.describe ActiverecordCallbackLens::CLI::App do
   # Runs the Thor app with the given argv, capturing stdout and stderr. Returns
   # [stdout, stderr, exit_status]; exit_status is nil unless the command exits.
@@ -151,6 +161,17 @@ RSpec.describe ActiverecordCallbackLens::CLI::App do
       expect(ActiverecordCallbackLens::Resolver::MethodResolver)
         .to receive(:expand).at_least(:once).and_call_original
       run_cli(%w[analyze CliExpandUser --expand --mermaid])
+    end
+
+    it "renders a proc filter's source snippet in the node label with --expand" do
+      stdout, = run_cli(%w[analyze CliProcUser --expand --mermaid])
+      expect(stdout).to include("before_save: -> { normalize_title }")
+    end
+
+    it "renders a proc filter as (proc) without --expand" do
+      stdout, = run_cli(%w[analyze CliProcUser --mermaid])
+      expect(stdout).to include("before_save: (proc)")
+      expect(stdout).not_to include("normalize_title")
     end
   end
 
