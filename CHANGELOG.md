@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] - 2026-06-06
+
+### Changed (breaking)
+
+- Callback graph nodes now label each callback as `phase_event: filter`
+  (e.g. `before_validation: set_slug`) across the Mermaid, Graphviz, and HTML
+  renderers, replacing the previous `phase_event`-only label. Downstream
+  consumers parsing the old bare-label format must be updated.
+
+### Added
+
+- `CallbackDefinition#callback_name` (returns `"#{phase}_#{event}"`) and
+  `#filter_label(expand:)`. With `--expand` / `EXPAND=true`, proc filters render
+  their actual source snippet (e.g. `-> { compute_reading_time }`), falling back
+  to `(proc)` on any I/O or parse error.
+
+### Changed
+
+- `MermaidRenderer.render`, `GraphvizRenderer.render`, and `HtmlRenderer.render`
+  now accept an `expand:` keyword; the CLI (`--expand`) and Rake (`EXPAND=true`)
+  layers thread the existing flag through to them, including the HTML report's
+  embedded Mermaid and Graphviz sections.
+
 ## [0.4.1] - 2026-06-06
 
 ### Added
@@ -70,6 +93,7 @@ Initial release.
 - **CLI** (`callback_lens analyze MODEL`) — Thor-based command-line interface that runs the full collect → parse → build → render pipeline and prints the Mermaid diagram to stdout.
 - **Rake task** (`callback_lens:analyze MODEL=Foo`) — Rails-integrated rake task backed by a Railtie; `callback_lens:mermaid` is provided as an alias.
 
+[0.5.0]: https://github.com/eraxel/activerecord_callback_lens/releases/tag/v0.5.0
 [0.4.1]: https://github.com/eraxel/activerecord_callback_lens/releases/tag/v0.4.1
 [0.4.0]: https://github.com/eraxel/activerecord_callback_lens/releases/tag/v0.4.0
 [0.3.0]: https://github.com/eraxel/activerecord_callback_lens/releases/tag/v0.3.0
