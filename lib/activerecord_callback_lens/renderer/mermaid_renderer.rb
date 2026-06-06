@@ -19,14 +19,17 @@ module ActiverecordCallbackLens
     # surrounding Mermaid label syntax.
     class MermaidRenderer
       # @param graph [Graph::Graph]
+      # @param expand [Boolean] expand proc filter labels to their source snippet
       # @return [String]
-      def self.render(graph)
-        new(graph).render
+      def self.render(graph, expand: false)
+        new(graph, expand: expand).render
       end
 
       # @param graph [Graph::Graph]
-      def initialize(graph)
+      # @param expand [Boolean]
+      def initialize(graph, expand: false)
         @graph = graph
+        @expand = expand
       end
 
       # @return [String]
@@ -55,7 +58,8 @@ module ActiverecordCallbackLens
       # @return [String]
       def node_label(node)
         case node
-        when Graph::CallbackNode  then "#{node.definition.phase}_#{node.definition.event}"
+        when Graph::CallbackNode
+          "#{node.definition.callback_name}: #{node.definition.filter_label(expand: @expand)}"
         when Graph::PredicateNode then node.predicate_name
         when Graph::MethodNode    then node.method_name
         when Graph::ConditionNode then node.tree_node.class.name.split("::").last

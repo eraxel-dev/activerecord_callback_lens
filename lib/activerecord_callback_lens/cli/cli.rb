@@ -48,7 +48,7 @@ module ActiverecordCallbackLens
       def analyze(model_name)
         model_class = resolve_model(model_name)
         definitions, graph = build_pipeline(model_class, expand: options[:expand])
-        render_outputs(graph, definitions)
+        render_outputs(graph, definitions, expand: options[:expand])
       end
 
       private
@@ -58,11 +58,12 @@ module ActiverecordCallbackLens
       #
       # @param graph [Graph::Graph]
       # @param definitions [Array<Collector::CallbackDefinition>]
+      # @param expand [Boolean]
       # @return [void]
-      def render_outputs(graph, definitions)
-        puts Renderer::MermaidRenderer.render(graph) if options[:mermaid]
-        puts Renderer::GraphvizRenderer.render(graph) if options[:graphviz]
-        write_html(graph, definitions, options[:html]) if options[:html]
+      def render_outputs(graph, definitions, expand:)
+        puts Renderer::MermaidRenderer.render(graph, expand: expand) if options[:mermaid]
+        puts Renderer::GraphvizRenderer.render(graph, expand: expand) if options[:graphviz]
+        write_html(graph, definitions, options[:html], expand: expand) if options[:html]
       end
 
       # Resolves a model class by name, printing a friendly error and exiting
@@ -105,9 +106,10 @@ module ActiverecordCallbackLens
       # @param graph [Graph::Graph]
       # @param definitions [Array<Collector::CallbackDefinition>]
       # @param path [String]
+      # @param expand [Boolean]
       # @return [void]
-      def write_html(graph, definitions, path)
-        html = Renderer::HtmlRenderer.render(graph, definitions: definitions)
+      def write_html(graph, definitions, path, expand: false)
+        html = Renderer::HtmlRenderer.render(graph, definitions: definitions, expand: expand)
         File.write(path, html)
         puts "HTML report written to #{path}"
       end

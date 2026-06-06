@@ -43,7 +43,7 @@ module CallbackLensRakeHelpers
       end
     end
     graph = ActiverecordCallbackLens::Graph::GraphBuilder.build(definitions)
-    ActiverecordCallbackLens::Renderer::MermaidRenderer.render(graph)
+    ActiverecordCallbackLens::Renderer::MermaidRenderer.render(graph, expand: expand)
   end
 
   # Runs the full pipeline (collect -> parse -> [expand] -> build -> render) for
@@ -63,7 +63,7 @@ module CallbackLensRakeHelpers
       end
     end
     graph = ActiverecordCallbackLens::Graph::GraphBuilder.build(definitions)
-    ActiverecordCallbackLens::Renderer::GraphvizRenderer.render(graph)
+    ActiverecordCallbackLens::Renderer::GraphvizRenderer.render(graph, expand: expand)
   end
 
   # Runs the full pipeline (collect -> parse -> [expand] -> build) for a model and
@@ -85,7 +85,7 @@ module CallbackLensRakeHelpers
       end
     end
     graph = ActiverecordCallbackLens::Graph::GraphBuilder.build(definitions)
-    ActiverecordCallbackLens::Renderer::HtmlRenderer.render(graph, definitions: definitions)
+    ActiverecordCallbackLens::Renderer::HtmlRenderer.render(graph, definitions: definitions, expand: expand)
   end
 
   # Parses the EXPAND environment variable using the strict truthy rule: only the

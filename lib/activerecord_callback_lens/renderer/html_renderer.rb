@@ -97,16 +97,19 @@ module ActiverecordCallbackLens
 
       # @param graph [Graph::Graph] the assembled dependency graph
       # @param definitions [Array<Collector::CallbackDefinition>] parsed definitions
+      # @param expand [Boolean] expand proc filter labels to their source snippet
       # @return [String] a complete HTML document
-      def self.render(graph, definitions:)
-        new(graph, definitions).render
+      def self.render(graph, definitions:, expand: false)
+        new(graph, definitions, expand: expand).render
       end
 
       # @param graph [Graph::Graph]
       # @param definitions [Array<Collector::CallbackDefinition>]
-      def initialize(graph, definitions)
+      # @param expand [Boolean]
+      def initialize(graph, definitions, expand: false)
         @graph = graph
         @definitions = definitions
+        @expand = expand
       end
 
       # Assembles the full HTML document.
@@ -138,7 +141,7 @@ module ActiverecordCallbackLens
           "<tr>" \
             "<td>#{escape(definition.phase)}</td>" \
             "<td>#{escape(definition.event)}</td>" \
-            "<td>#{escape(filter_label(definition))}</td>" \
+            "<td>#{escape(definition.filter_label(expand: @expand))}</td>" \
             "<td>#{escape(conditions_label(definition))}</td>" \
             "</tr>"
         end
@@ -156,7 +159,9 @@ module ActiverecordCallbackLens
       # Section 2: callbacks in canonical create-path execution order.
       def execution_flow
         ordered = ExecutionOrderAnalyzer.sort(@definitions, operation: :create)
-        items = ordered.map { |d| "<li>#{escape("#{d.phase}_#{d.event}")}</li>" }
+        items = ordered.map do |d|
+          "<li>#{escape("#{d.callback_name}: #{d.filter_label(expand: @expand)}")}</li>"
+        end
         <<~HTML.chomp
           <h2>Execution Flow</h2>
           <ol>
@@ -171,7 +176,7 @@ module ActiverecordCallbackLens
         trees = @definitions.filter_map do |definition|
           next if definition.condition_tree.nil?
 
-          "<li>#{escape("#{definition.phase}_#{definition.event}")}" \
+          "<li>#{escape("#{definition.callback_name}: #{definition.filter_label(expand: @expand)}")}" \
             "#{ConditionTreeHtml.new(definition.condition_tree).to_html}</li>"
         end
         <<~HTML.chomp
@@ -186,26 +191,20 @@ module ActiverecordCallbackLens
       def mermaid_section
         <<~HTML.chomp
           <h2>Mermaid Diagram</h2>
-          <pre class="mermaid">#{escape(MermaidRenderer.render(@graph))}</pre>
+          <pre class="mermaid">#{escape(MermaidRenderer.render(@graph, expand: @expand))}</pre>
         HTML
       end
 
       # Section 5: the inline Graphviz SVG, or an empty string when +dot+ is not
       # installed (GraphvizRenderer#to_svg returns nil).
       def svg_section
-        svg = GraphvizRenderer.new(@graph).to_svg
+        svg = GraphvizRenderer.new(@graph, expand: @expand).to_svg
         return "" if svg.nil?
 
         <<~HTML.chomp
           <h2>Graphviz SVG</h2>
           <div class="graphviz">#{svg}</div>
         HTML
-      end
-
-      # A human-readable label for a definition's filter (Symbol, String, or Proc).
-      def filter_label(definition)
-        filter = definition.filter
-        filter.is_a?(Proc) ? "(proc)" : filter.to_s
       end
 
       # A comma-joined label of a definition's condition leaf names, or "".
