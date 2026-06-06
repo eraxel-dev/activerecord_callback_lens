@@ -148,6 +148,25 @@ graph = ActiverecordCallbackLens::Graph::GraphBuilder.build(definitions)
 puts ActiverecordCallbackLens::Renderer::MermaidRenderer.render(graph)
 ```
 
+## Example app
+
+A runnable example Rails app lives in [`examples/blog_app/`](examples/blog_app/).
+It defines a small blog domain (`Article`, `User`, `Comment`) with callbacks
+covering every lifecycle event and condition style, and points its `Gemfile` at
+this repo via `path: "../.."` so it always exercises the current gem code:
+
+```bash
+cd examples/blog_app
+bundle install
+bin/rails callback_lens:analyze MODEL=Article            # Mermaid diagram
+bin/rails callback_lens:analyze MODEL=Article EXPAND=true # expanded predicates
+bin/rails callback_lens:html MODEL=Article OUT=reports/article.html
+bin/callback_lens_demo                                    # programmatic API demo
+```
+
+See [`examples/blog_app/README.md`](examples/blog_app/README.md) for the full
+command matrix and expected output.
+
 ## How it works
 
 | Layer | Class | Responsibility |

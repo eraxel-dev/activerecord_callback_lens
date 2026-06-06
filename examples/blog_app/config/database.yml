@@ -1,0 +1,20 @@
+# SQLite keeps the demo zero-setup: no server, no credentials, just a file under
+# db/. The gem performs *static* analysis and does not actually query the
+# database, so this config exists mainly so the app boots like a real Rails app
+# and so `bin/rails db:prepare` works if you want to populate seed data.
+default: &default
+  adapter: sqlite3
+  pool: 5
+  timeout: 5000
+
+development:
+  <<: *default
+  database: db/blog_app.sqlite3
+
+test:
+  <<: *default
+  database: db/blog_app_test.sqlite3
+
+production:
+  <<: *default
+  database: db/blog_app.sqlite3

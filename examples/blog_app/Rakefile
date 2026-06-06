@@ -1,0 +1,8 @@
+# frozen_string_literal: true
+
+# Load the application and expose its rake tasks. `Rails.application.load_tasks`
+# pulls in the standard Rails tasks (db:*, etc.) AND the `callback_lens:*` tasks
+# that the gem's Railtie registers via its `rake_tasks do ... end` block.
+require_relative "config/application"
+
+Rails.application.load_tasks
