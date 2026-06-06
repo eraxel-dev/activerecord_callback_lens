@@ -31,6 +31,16 @@ class RakeExpandUser < ActiveRecord::Base
   def active?; end
 end
 
+# A model whose callback filter is a lambda, used to exercise EXPAND rendering
+# the proc's source snippet into the callback node label.
+class RakeProcUser < ActiveRecord::Base
+  self.abstract_class = true
+
+  before_save -> { normalize_title }
+
+  def normalize_title; end
+end
+
 RSpec.describe CallbackLensRakeHelpers do
   describe ".resolve_model!" do
     it "returns the constant for a valid model name" do
@@ -86,6 +96,17 @@ RSpec.describe CallbackLensRakeHelpers do
       expect(ActiverecordCallbackLens::Resolver::MethodResolver)
         .to receive(:expand).at_least(:once).and_call_original
       described_class.render_mermaid(RakeExpandUser, expand: true)
+    end
+
+    it "renders a proc filter's source snippet in the label when expand: true" do
+      output = described_class.render_mermaid(RakeProcUser, expand: true)
+      expect(output).to include("before_save: -> { normalize_title }")
+    end
+
+    it "renders a proc filter as (proc) by default" do
+      output = described_class.render_mermaid(RakeProcUser)
+      expect(output).to include("before_save: (proc)")
+      expect(output).not_to include("normalize_title")
     end
   end
 

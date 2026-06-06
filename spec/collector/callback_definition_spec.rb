@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require_relative "../support/proc_fixtures"
+
 RSpec.describe ActiverecordCallbackLens::Collector::CallbackDefinition do
   let(:attributes) do
     {
@@ -82,5 +84,77 @@ RSpec.describe ActiverecordCallbackLens::Collector::CallbackDefinition do
   it "raises ArgumentError when a required member is missing" do
     incomplete = attributes.except(:source_location)
     expect { described_class.new(**incomplete) }.to raise_error(ArgumentError)
+  end
+
+  def definition_with(filter:)
+    described_class.new(**attributes, filter: filter)
+  end
+
+  describe "#callback_name" do
+    it "joins phase and event with an underscore" do
+      definition = described_class.new(**attributes, phase: :before, event: :save)
+      expect(definition.callback_name).to eq("before_save")
+    end
+
+    it "reflects other phase/event combinations" do
+      definition = described_class.new(**attributes, phase: :after, event: :validation)
+      expect(definition.callback_name).to eq("after_validation")
+    end
+  end
+
+  describe "#filter_label" do
+    context "with a Symbol filter" do
+      it "returns the symbol name as a string" do
+        expect(definition_with(filter: :set_slug).filter_label).to eq("set_slug")
+      end
+    end
+
+    context "with a String filter" do
+      it "returns the string unchanged" do
+        expect(definition_with(filter: "do_thing").filter_label).to eq("do_thing")
+      end
+    end
+
+    context "with a Proc filter" do
+      it "returns \"(proc)\" by default (expand: false)" do
+        expect(definition_with(filter: -> {}).filter_label).to eq("(proc)")
+      end
+
+      it "returns \"(proc)\" when expand: false is explicit" do
+        expect(definition_with(filter: -> {}).filter_label(expand: false)).to eq("(proc)")
+      end
+
+      it "returns the source snippet for a real lambda when expand: true" do
+        label = definition_with(filter: ProcFixtures.single_line_lambda).filter_label(expand: true)
+        expect(label).to eq("-> { compute_reading_time }")
+      end
+
+      it "collapses a multi-line proc snippet onto a single line when expand: true" do
+        label = definition_with(filter: ProcFixtures.multi_line_proc).filter_label(expand: true)
+        expect(label).to eq("do first_step second_step end")
+      end
+
+      it "falls back to \"(proc)\" when source_location is nil" do
+        no_location = -> {}
+        allow(no_location).to receive(:source_location).and_return(nil)
+
+        expect(definition_with(filter: no_location).filter_label(expand: true)).to eq("(proc)")
+      end
+
+      it "falls back to \"(proc)\" when the source file does not exist" do
+        ghost = -> {}
+        allow(ghost).to receive(:source_location).and_return(["/no/such/file.rb", 1])
+
+        expect(definition_with(filter: ghost).filter_label(expand: true)).to eq("(proc)")
+      end
+
+      it "falls back to \"(proc)\" when the proc node cannot be located in the file" do
+        # Point at a real, parseable file but a line that encloses no lambda/block.
+        stray = -> {}
+        allow(stray).to receive(:source_location).and_return([__FILE__, 1])
+
+        expect(definition_with(filter: stray).filter_label(expand: true)).to eq("(proc)")
+      end
+    end
   end
 end

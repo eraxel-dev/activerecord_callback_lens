@@ -1,15 +1,17 @@
 # frozen_string_literal: true
 
+require_relative "../support/proc_fixtures"
+
 RSpec.describe ActiverecordCallbackLens::Renderer::GraphvizRenderer do
   graph_ns = ActiverecordCallbackLens::Graph
   tree = ActiverecordCallbackLens::Parser::ConditionTree
 
-  def callback_definition(event: :save, phase: :before)
+  def callback_definition(event: :save, phase: :before, filter: :placeholder)
     ActiverecordCallbackLens::Collector::CallbackDefinition.new(
       model: Object,
       event: event,
       phase: phase,
-      filter: :placeholder,
+      filter: filter,
       raw_conditions: { if: [], unless: [] },
       condition_tree: nil,
       source_location: nil
@@ -29,10 +31,25 @@ RSpec.describe ActiverecordCallbackLens::Renderer::GraphvizRenderer do
       expect(described_class.render(graph).lines[1].chomp).to eq("  rankdir=LR;")
     end
 
-    it "renders a CallbackNode label as phase_event" do
+    it "renders a CallbackNode label as `phase_event: filter`" do
       node = graph_ns::CallbackNode.new(id: "n0", definition: callback_definition(event: :save, phase: :before))
       graph = graph_ns::Graph.new(nodes: [node], edges: [])
-      expect(described_class.render(graph)).to include(%(  n0 [label="before_save"];))
+      expect(described_class.render(graph)).to include(%(  n0 [label="before_save: placeholder"];))
+    end
+
+    it "renders a proc filter as `(proc)` by default" do
+      node = graph_ns::CallbackNode.new(id: "n0", definition: callback_definition(filter: -> {}))
+      graph = graph_ns::Graph.new(nodes: [node], edges: [])
+      expect(described_class.render(graph)).to include(%(  n0 [label="before_save: (proc)"];))
+    end
+
+    it "renders a proc filter's source snippet when expand: true, escaping DOT specials" do
+      definition = callback_definition(filter: ProcFixtures.single_line_lambda)
+      node = graph_ns::CallbackNode.new(id: "n0", definition: definition)
+      graph = graph_ns::Graph.new(nodes: [node], edges: [])
+      # `{`, `}`, and `->` need no DOT escaping; only `"` would, and the snippet has none.
+      expect(described_class.render(graph, expand: true))
+        .to include(%(  n0 [label="before_save: -> { compute_reading_time }"];))
     end
 
     it "renders a PredicateNode label as the predicate name" do
@@ -70,7 +87,7 @@ RSpec.describe ActiverecordCallbackLens::Renderer::GraphvizRenderer do
       expect(described_class.render(graph)).to eq(<<~DOT.chomp)
         digraph callback_lens {
           rankdir=LR;
-          n0 [label="before_save"];
+          n0 [label="before_save: placeholder"];
           n1 [label="active?"];
           n1 -> n0;
         }
