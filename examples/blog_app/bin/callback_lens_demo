@@ -1,0 +1,80 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# Programmatic-API demo. Boots the Rails environment (so the models are loaded),
+# then drives the gem the same way the README's "Programmatic API" section does —
+# collect → parse → (optionally expand) → build graph → render — and writes one
+# Mermaid, one Graphviz DOT, and one HTML file per model into reports/.
+#
+# Usage:
+#   bin/callback_lens_demo                # all demo models, no expansion
+#   bin/callback_lens_demo Article        # a single model
+#   EXPAND=true bin/callback_lens_demo    # recursively expand Symbol conditions
+#
+# This mirrors what `callback_lens:mermaid/graphviz/html` do, but via Ruby calls
+# so you can see exactly which gem objects produce each artifact.
+
+# Boot the app: this requires bundler/setup against the example Gemfile and
+# initializes Rails, which eager-loads app/models.
+require_relative "../config/environment"
+
+require "fileutils"
+
+module CallbackLensDemo
+  ACL = ActiverecordCallbackLens
+
+  # Models to render when no explicit model name is passed on the command line.
+  DEFAULT_MODELS = %w[Article User Comment].freeze
+
+  REPORTS_DIR = Rails.root.join("reports")
+
+  module_function
+
+  # Runs the full pipeline for a model and returns [definitions, graph] so each
+  # renderer can be fed the artifact it needs. `expand` threads the EXPAND env
+  # convention through, matching the rake tasks and CLI.
+  def pipeline(model_class, expand:)
+    definitions = ACL::Collector::CallbackCollector.collect(model_class)
+    definitions = definitions.map { |d| ACL::Parser::ConditionParser.parse(d) }
+    definitions = definitions.map { |d| ACL::Resolver::MethodResolver.expand(d, model_class) } if expand
+    [definitions, ACL::Graph::GraphBuilder.build(definitions)]
+  end
+
+  # Renders Mermaid, DOT, and HTML for one model into reports/, returning the
+  # list of files written.
+  def render_model(model_name, expand:)
+    model_class = Object.const_get(model_name)
+    definitions, graph = pipeline(model_class, expand: expand)
+
+    suffix = expand ? "_expanded" : ""
+    base = model_name.underscore
+
+    written = []
+    written << write("#{base}#{suffix}.mmd", ACL::Renderer::MermaidRenderer.render(graph))
+    written << write("#{base}#{suffix}.dot", ACL::Renderer::GraphvizRenderer.render(graph))
+    written << write("#{base}#{suffix}.html",
+                     ACL::Renderer::HtmlRenderer.render(graph, definitions: definitions))
+    written
+  end
+
+  # Writes content to reports/<name> and returns the path.
+  def write(name, content)
+    path = REPORTS_DIR.join(name)
+    File.write(path, content)
+    path
+  end
+
+  def run(argv)
+    FileUtils.mkdir_p(REPORTS_DIR)
+    expand = ENV["EXPAND"].to_s.strip.downcase == "true"
+    models = argv.empty? ? DEFAULT_MODELS : argv
+
+    puts "callback_lens_demo: rendering #{models.join(', ')} (expand=#{expand})"
+    models.each do |model_name|
+      render_model(model_name, expand: expand).each { |path| puts "  wrote #{path.relative_path_from(Rails.root)}" }
+    end
+    puts "Done. Open the .html files in reports/ to view the reports."
+  end
+end
+
+CallbackLensDemo.run(ARGV)

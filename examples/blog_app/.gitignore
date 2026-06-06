@@ -1,0 +1,17 @@
+# The example app resolves against the in-repo gem via `path: "../.."`, so its
+# lockfile is environment-specific churn we don't want tracked in the gem repo.
+/Gemfile.lock
+
+# Generated SQLite databases.
+/db/*.sqlite3
+/db/*.sqlite3-*
+
+# Generated reports (Mermaid / DOT / HTML / images). Keep the directory itself
+# via reports/.keep, but ignore everything the demo writes into it.
+/reports/*
+!/reports/.keep
+
+# Standard Rails noise.
+/log/*
+/tmp/*
+.bundle/

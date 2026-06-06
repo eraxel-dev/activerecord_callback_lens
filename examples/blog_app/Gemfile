@@ -1,0 +1,21 @@
+# frozen_string_literal: true
+
+# Isolated Gemfile for the activerecord_callback_lens example app.
+#
+# This app intentionally lives in its own bundle, completely separate from the
+# gem's own Gemfile/Gemfile.lock. It pulls the gem straight from the working
+# tree via `path: "../.."`, so running the demo always exercises the current
+# in-repo gem code rather than a published release.
+source "https://rubygems.org"
+
+# Full Rails for simplicity — gives us a real application, `bin/rails`, the
+# Railtie-registered `callback_lens:*` rake tasks, and `rails runner` with no
+# extra wiring. (activerecord + railties alone would also work if you want a
+# leaner dependency footprint.)
+gem "rails", "~> 8.0"
+
+# SQLite needs zero external setup, which keeps the demo one-command runnable.
+gem "sqlite3", ">= 2.1"
+
+# The star of the show: the gem under test, sourced from the repository root.
+gem "activerecord_callback_lens", path: "../.."

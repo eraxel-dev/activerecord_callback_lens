@@ -1,0 +1,10 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# Standard Rails launcher. `rails/commands` reads APP_PATH to locate the
+# application, giving us `bin/rails runner`, `bin/rails callback_lens:analyze`,
+# `bin/rails db:prepare`, and the rest — all bundled against this app's Gemfile
+# via config/boot.rb.
+APP_PATH = File.expand_path("../config/application", __dir__)
+require_relative "../config/boot"
+require "rails/commands"
