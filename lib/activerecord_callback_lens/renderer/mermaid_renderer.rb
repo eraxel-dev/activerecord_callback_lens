@@ -4,12 +4,12 @@ require_relative "../graph/nodes"
 
 module ActiverecordCallbackLens
   module Renderer
-    # Renders a Graph::Graph as a Mermaid `graph TD` (top-down) diagram string.
+    # Renders a Graph::Graph as a Mermaid `graph LR` (left-to-right) diagram string.
     #
     # The output is a header line followed by one declaration per node and one
     # arrow per edge:
     #
-    #   graph TD
+    #   graph LR
     #     n0["before_save"]
     #     n1["active?"]
     #     n1 --> n0
@@ -34,7 +34,7 @@ module ActiverecordCallbackLens
 
       # @return [String]
       def render
-        lines = ["graph TD"]
+        lines = ["graph LR"]
         lines.concat(node_declarations)
         lines.concat(edge_declarations)
         lines.join("\n")
