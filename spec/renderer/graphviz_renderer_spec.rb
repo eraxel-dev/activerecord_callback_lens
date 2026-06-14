@@ -31,6 +31,14 @@ RSpec.describe ActiverecordCallbackLens::Renderer::GraphvizRenderer do
       expect(described_class.render(graph).lines[1].chomp).to eq("  rankdir=LR;")
     end
 
+    it "never emits the legacy top-down `rankdir=TB` direction" do
+      callback = graph_ns::CallbackNode.new(id: "n0", definition: callback_definition)
+      predicate = graph_ns::PredicateNode.new(id: "n1", predicate_name: "active?")
+      edge = graph_ns::Edge.new(from_id: "n1", to_id: "n0", label: :requires)
+      graph = graph_ns::Graph.new(nodes: [callback, predicate], edges: [edge])
+      expect(described_class.render(graph)).not_to include("rankdir=TB")
+    end
+
     it "renders a CallbackNode label as `phase_event: filter`" do
       node = graph_ns::CallbackNode.new(id: "n0", definition: callback_definition(event: :save, phase: :before))
       graph = graph_ns::Graph.new(nodes: [node], edges: [])

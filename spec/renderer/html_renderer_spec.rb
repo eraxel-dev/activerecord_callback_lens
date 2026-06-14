@@ -97,7 +97,7 @@ RSpec.describe ActiverecordCallbackLens::Renderer::HtmlRenderer do
     it "renders a <pre class=\"mermaid\"> block containing Mermaid diagram output" do
       output = render
       expect(output).to include('<pre class="mermaid">')
-      expect(output).to include("graph TD")
+      expect(output).to include("graph LR")
     end
 
     it "renders the Graphviz SVG section when #to_svg returns an SVG string" do
