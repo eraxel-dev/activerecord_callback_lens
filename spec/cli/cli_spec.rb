@@ -70,18 +70,18 @@ RSpec.describe ActiverecordCallbackLens::CLI::App do
       stdout, _stderr, status = run_cli(%w[analyze CliSpecUser])
 
       expect(status).to be_nil
-      expect(stdout).to start_with("graph TD")
+      expect(stdout).to start_with("graph LR")
       expect(stdout).to include("before_save")
     end
 
     it "defaults to Mermaid output when --mermaid is not given" do
       stdout, = run_cli(%w[analyze CliSpecUser])
-      expect(stdout).to include("graph TD")
+      expect(stdout).to include("graph LR")
     end
 
     it "still renders when --mermaid is passed explicitly" do
       stdout, = run_cli(["analyze", "CliSpecUser", "--mermaid"])
-      expect(stdout).to include("graph TD")
+      expect(stdout).to include("graph LR")
     end
 
     it "prints a friendly error and exits non-zero for an unknown model" do
@@ -90,7 +90,7 @@ RSpec.describe ActiverecordCallbackLens::CLI::App do
       expect(status).to eq(1)
       expect(stderr).to include("cannot find model class 'NoSuchModelXYZ'")
       expect(stderr).not_to include("NameError")
-      expect(stdout).not_to include("graph TD")
+      expect(stdout).not_to include("graph LR")
     end
   end
 
@@ -117,7 +117,7 @@ RSpec.describe ActiverecordCallbackLens::CLI::App do
     it "emits both Mermaid and DOT output when --mermaid and --graphviz are combined" do
       stdout, = run_cli(%w[analyze CliSpecUser --mermaid --graphviz])
 
-      expect(stdout).to include("graph TD")
+      expect(stdout).to include("graph LR")
       expect(stdout).to include("digraph callback_lens {")
     end
 
@@ -133,7 +133,7 @@ RSpec.describe ActiverecordCallbackLens::CLI::App do
       stdout, = run_cli(%w[analyze CliExpandUser --expand --mermaid])
 
       # :sync_required? delegates to :active?; expansion surfaces active? as a node.
-      expect(stdout).to start_with("graph TD")
+      expect(stdout).to start_with("graph LR")
       expect(stdout).to include("sync_required?")
       expect(stdout).to include("active?")
     end

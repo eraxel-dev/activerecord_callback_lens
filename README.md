@@ -33,10 +33,10 @@ Point the `callback_lens` binary at any loaded ActiveRecord model:
 callback_lens analyze User
 ```
 
-This prints a Mermaid `graph TD` diagram to stdout showing every callback and its condition dependencies.
+This prints a Mermaid `graph LR` diagram to stdout showing every callback and its condition dependencies.
 
 ```
-graph TD
+graph LR
   n0["before_save"]
   n1["AndNode"]
   n2["saved_change_to_title?"]
@@ -176,7 +176,7 @@ command matrix and expected output.
 | Resolver | `MethodResolver` | Recursively expands `MethodRefNode` symbols into full `ConditionTree` sub-trees (up to 5 levels deep) with cycle detection |
 | Graph | `GraphBuilder` | Assembles a DAG of `CallbackNode`, `ConditionNode`, `PredicateNode`, and `MethodNode` values |
 | Analyzer | `ExecutionOrderAnalyzer` | Sorts definitions into canonical Rails execution order (create or update path) |
-| Renderer | `MermaidRenderer` | Serializes the graph to a Mermaid `graph TD` string |
+| Renderer | `MermaidRenderer` | Serializes the graph to a Mermaid `graph LR` (left-to-right) string |
 | Renderer | `GraphvizRenderer` | Serializes the graph to a Graphviz DOT string; `#to_svg` shells out to `dot` |
 | Renderer | `HtmlRenderer` | Produces a self-contained HTML report embedding Mermaid, SVG, callback table, execution flow, and dependency tree |
 

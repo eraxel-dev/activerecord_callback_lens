@@ -19,9 +19,17 @@ RSpec.describe ActiverecordCallbackLens::Renderer::MermaidRenderer do
   end
 
   describe ".render" do
-    it "starts with the `graph TD` header" do
+    it "starts with the `graph LR` header" do
       graph = graph_ns::Graph.new(nodes: [], edges: [])
-      expect(described_class.render(graph).lines.first.chomp).to eq("graph TD")
+      expect(described_class.render(graph).lines.first.chomp).to eq("graph LR")
+    end
+
+    it "never emits the legacy top-down `graph TD` direction" do
+      callback = graph_ns::CallbackNode.new(id: "n0", definition: callback_definition)
+      predicate = graph_ns::PredicateNode.new(id: "n1", predicate_name: "active?")
+      edge = graph_ns::Edge.new(from_id: "n1", to_id: "n0", label: :requires)
+      graph = graph_ns::Graph.new(nodes: [callback, predicate], edges: [edge])
+      expect(described_class.render(graph)).not_to include("graph TD")
     end
 
     it "renders a CallbackNode label as `phase_event: filter`" do
@@ -77,7 +85,7 @@ RSpec.describe ActiverecordCallbackLens::Renderer::MermaidRenderer do
       graph = graph_ns::Graph.new(nodes: [callback, predicate], edges: [edge])
 
       expect(described_class.render(graph)).to eq(<<~MERMAID.chomp)
-        graph TD
+        graph LR
           n0["before_save: placeholder"]
           n1["active?"]
           n1 --> n0

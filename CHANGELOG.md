@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0] - 2026-06-14
+
+### Changed (breaking)
+
+- Callback graphs now render left-to-right instead of top-down. The Mermaid
+  renderer emits `graph LR` (was `graph TD`) and the Graphviz renderer emits
+  `rankdir=LR;` (was `rankdir=TB;`), so conditions/predicates flow rightward
+  into the callback node at the end of each chain. No edges or graph semantics
+  change. Downstream consumers parsing the raw Mermaid or DOT text must update
+  any assertions on the header / `rankdir` line.
+
 ## [0.5.0] - 2026-06-06
 
 ### Changed (breaking)
@@ -93,6 +104,7 @@ Initial release.
 - **CLI** (`callback_lens analyze MODEL`) — Thor-based command-line interface that runs the full collect → parse → build → render pipeline and prints the Mermaid diagram to stdout.
 - **Rake task** (`callback_lens:analyze MODEL=Foo`) — Rails-integrated rake task backed by a Railtie; `callback_lens:mermaid` is provided as an alias.
 
+[0.6.0]: https://github.com/eraxel/activerecord_callback_lens/releases/tag/v0.6.0
 [0.5.0]: https://github.com/eraxel/activerecord_callback_lens/releases/tag/v0.5.0
 [0.4.1]: https://github.com/eraxel/activerecord_callback_lens/releases/tag/v0.4.1
 [0.4.0]: https://github.com/eraxel/activerecord_callback_lens/releases/tag/v0.4.0

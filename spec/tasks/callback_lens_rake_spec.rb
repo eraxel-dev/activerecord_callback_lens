@@ -66,7 +66,7 @@ RSpec.describe CallbackLensRakeHelpers do
   describe ".render_mermaid" do
     it "runs the full pipeline and returns a Mermaid string" do
       output = described_class.render_mermaid(RakeSpecUser)
-      expect(output).to start_with("graph TD")
+      expect(output).to start_with("graph LR")
       expect(output).to include("before_save")
     end
 
